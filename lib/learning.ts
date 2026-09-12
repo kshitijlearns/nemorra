@@ -1,0 +1,53 @@
+import { z } from 'zod';
+
+export const materialSchema = z.object({
+  title: z.string().min(1).max(120),
+  text: z.string().min(20).max(20000),
+  concepts: z.array(z.string().min(1).max(400)).min(1).max(12),
+});
+export const assessmentSchema = z.object({
+  summary: z.string().min(1).max(1500),
+  items: z.array(z.object({
+    status: z.enum(['remembered', 'partial', 'missing']),
+    feedback: z.string().min(1).max(600),
+  })).min(1).max(12),
+});
+export const sessionSchema = z.object({
+  id: z.string().uuid(), createdAt: z.string().datetime(),
+  material: materialSchema, explanation: z.string().max(12000), draft: z.string().max(12000),
+  teach: assessmentSchema.nullable(), write: assessmentSchema.nullable(), pinned: z.boolean().optional(),
+});
+export const storeSchema = z.object({
+  version: z.literal(1), current: sessionSchema.nullable(), records: z.array(sessionSchema).max(100),
+  notes: z.string().max(20000), profile: z.object({ name: z.string().max(80) }), calm: z.boolean(),
+});
+export type Material = z.infer<typeof materialSchema>;
+export type Assessment = z.infer<typeof assessmentSchema>;
+export type Session = z.infer<typeof sessionSchema>;
+export type LearningStore = z.infer<typeof storeSchema>;
+export const STORAGE_KEY = 'nemorra.learning.v1';
+export const emptyStore = (): LearningStore => ({ version: 1, current: null, records: [], notes: '', profile: { name: 'Local learner' }, calm: false });
+export function score(assessment: Assessment | null) {
+  if (!assessment) return 0;
+  return Math.round(assessment.items.reduce((sum, item) => sum + (item.status === 'remembered' ? 1 : item.status === 'partial' ? 0.5 : 0), 0) / assessment.items.length * 100);
+}
+export function overall(session: Session) { return Math.round((score(session.teach) + score(session.write)) / 2); }
+export function newSession(material: Material): Session {
+  return { id: crypto.randomUUID(), createdAt: new Date().toISOString(), material, explanation: '', draft: '', teach: null, write: null };
+}
+export async function learningRequest(body: unknown) {
+  const response = await fetch('/api/learning', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(65000) });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'Learning service unavailable. Please try again.');
+  return data;
+}
+export async function encodeFile(file: File) {
+  if (file.size > 2 * 1024 * 1024) throw new Error('Choose a file smaller than 2 MB.');
+  const mime = file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : '');
+  if (!['application/pdf', 'image/jpeg', 'image/png', 'image/webp'].includes(mime)) throw new Error('Use a PDF, JPG, PNG, WebP, or paste plain text.');
+  const data = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(',')[1]);
+    reader.onerror = () => reject(new Error('Could not read this file.')); reader.readAsDataURL(file);
+  });
+  return { mime, data };
+}
