@@ -8,7 +8,7 @@ const sans = DM_Sans({ subsets: ['latin'], variable: '--font-dm-sans' });
 const serif = Lora({ subsets: ['latin'], variable: '--font-lora' });
 export const metadata: Metadata = {
   title: { default: 'Nemorra — Make it stick.', template: '%s · Nemorra' },
-  description: 'Your little learning companion. Learn, teach, and write your way to a better memory.',
+  description: 'Learn from your notes, teach in your own words, and practice written recall with Gemini feedback. Your learning sessions are saved on this device.',
   applicationName: 'Nemorra',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Nemorra' },
 };

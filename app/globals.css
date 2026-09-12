@@ -24,7 +24,7 @@
  :focus-visible { outline:2px solid var(--muted-foreground); outline-offset:4px; }
  ::selection { background:var(--border); color:var(--foreground); }
  textarea,input { font:inherit; }
- h1,h2,h3,p { margin:0; }
+ h1,h2,h3,p { margin:0; overflow-wrap:anywhere; }
 }
 .mobile-app-shell { width:100%; max-width:440px; min-height:100dvh; margin-inline:auto; background:var(--background); position:relative; isolation:isolate; }
 .page-container { width:100%; padding:calc(38px + env(safe-area-inset-top)) 24px calc(112px + env(safe-area-inset-bottom)); }
