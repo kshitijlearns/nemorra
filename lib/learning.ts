@@ -1,9 +1,16 @@
 import { z } from 'zod';
 
+export const memoryPlanItemSchema = z.object({
+  concept: z.string().min(1).max(400),
+  cue: z.string().min(1).max(180),
+  association: z.string().min(1).max(300),
+});
+
 export const materialSchema = z.object({
   title: z.string().min(1).max(120),
   text: z.string().min(20).max(20000),
   concepts: z.array(z.string().min(1).max(400)).min(1).max(12),
+  memoryPlan: z.array(memoryPlanItemSchema).max(12).optional(),
 });
 export const assessmentSchema = z.object({
   summary: z.string().min(1).max(1500),
@@ -21,6 +28,7 @@ export const storeSchema = z.object({
   version: z.literal(1), current: sessionSchema.nullable(), records: z.array(sessionSchema).max(100),
   notes: z.string().max(20000), profile: z.object({ name: z.string().max(80) }), calm: z.boolean(),
 });
+export type MemoryPlanItem = z.infer<typeof memoryPlanItemSchema>;
 export type Material = z.infer<typeof materialSchema>;
 export type Assessment = z.infer<typeof assessmentSchema>;
 export type Session = z.infer<typeof sessionSchema>;
@@ -40,6 +48,33 @@ export async function learningRequest(body: unknown) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || 'Learning service unavailable. Please try again.');
   return data;
+}
+export async function saveCloudSession(session: Session, userId: string) {
+  const response = await fetch('/api/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, session }), keepalive: true });
+  if (!response.ok) throw new Error('Could not save this session to the cloud.');
+}
+export function getClientUserId() {
+  const key = 'nemorra.user.v1';
+  try {
+    const existing = localStorage.getItem(key);
+    if (existing) return existing;
+    const id = crypto.randomUUID();
+    localStorage.setItem(key, id);
+    return id;
+  } catch {
+    return 'local-' + crypto.randomUUID();
+  }
+}
+export async function uploadToS3(file: File, userId: string) {
+  const prepare = await fetch('/api/storage/presign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, fileName: file.name, contentType: file.type || 'application/octet-stream', size: file.size }) });
+  const data = await prepare.json().catch(() => ({}));
+  if (!prepare.ok) throw new Error(data.error || 'Could not prepare file upload.');
+  const form = new FormData();
+  for (const [key, value] of Object.entries(data.fields as Record<string, string>)) form.append(key, value);
+  form.append('file', file);
+  const response = await fetch(data.url, { method: 'POST', body: form });
+  if (!response.ok) throw new Error('The file could not be uploaded.');
+  return { key: data.key as string, configured: true };
 }
 export async function encodeFile(file: File) {
   if (file.size > 2 * 1024 * 1024) throw new Error('Choose a file smaller than 2 MB.');
