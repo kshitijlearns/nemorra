@@ -94,14 +94,14 @@
 .flow-steps .current { color:var(--foreground); font-weight:600; }
 .flow-line { width:20px; height:1px; background:var(--border); }
 .teach-page { min-height:calc(100dvh - 76px); display:flex; flex-direction:column; padding-bottom:95px; }
-.teach-stage { flex:1; min-height:380px; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; overflow:hidden; margin-top:20px; }
+.teach-stage { flex:1; min-height:380px; display:flex; flex-direction:column; align-items:center; overflow:hidden; margin-top:20px; }
 .teach-mascot { width:calc(100% + 32px); max-width:425px; height:310px; overflow:hidden; transform-origin:bottom center; flex-shrink:0; }
 .teach-mascot img { width:100%; height:auto; }
-.teach-status { min-height:110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:14px; text-align:center; }
-.waveform { display:flex; align-items:center; justify-content:center; gap:5px; height:40px; }
-.waveform i { width:5px; height:22px; border-radius:10px; background:var(--foreground); animation:wave 1s ease-in-out infinite alternate; }
-.waveform i:nth-child(2n) { animation-delay:-.5s; height:34px; }
-.waveform i:nth-child(3n) { animation-delay:-.75s; height:42px; }
+.teach-status { flex:1; min-height:110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:14px; text-align:center; }
+.waveform { display:flex; align-items:center; justify-content:center; gap:4px; height:40px; }
+.waveform i { width:3px; height:14px; border-radius:10px; background:var(--foreground); animation:wave 1s ease-in-out infinite alternate; }
+.waveform i:nth-child(2n) { animation-delay:-.5s; height:30px; }
+.waveform i:nth-child(3n) { animation-delay:-.75s; height:40px; }
 @keyframes wave { from { transform:scaleY(.35); } to { transform:scaleY(1); } }
 .feedback-mascot { width:185px; height:185px; display:grid; place-items:center; }
 .feedback-mascot img { width:100%; height:100%; object-fit:contain; }
