@@ -1,0 +1,14 @@
+'use client';
+import Link from 'next/link';
+import { useState } from 'react';
+import { ArrowLeft, ArrowRight, Check, RotateCcw } from 'lucide-react';
+import { motion } from 'motion/react';
+import { PageTransition } from '@/components/page-transition';
+import { Mascot } from '@/components/mascot/mascot';
+import { ConceptDots } from '@/components/recordings/recording-list';
+import { concepts } from '@/lib/mock-data';
+import { useNemorra } from '@/components/app-provider';
+export function ResultsScreen() {
+ const { topic, setRecords } = useNemorra(); const [saved,setSaved] = useState(false);
+ return <PageTransition><div className="flow-top"><Link href="/" className="icon-button outlined" aria-label="Back home"><ArrowLeft size={19}/></Link><span className="quiet-note">Session complete</span><Check size={20}/></div><h1 className="page-title text-balance" style={{fontSize:43}}>Here&apos;s what stuck.</h1><div className="flex items-center justify-center py-7"><div><p className="result-score">89<span className="text-4xl">%</span></p><p className="page-subtitle mt-2">A little more yours.</p></div><Mascot state="celebrating" className="feedback-mascot"/></div><div className="results-breakdown">{[['Teach','87%'],['Write','91%'],['Overall','89%']].map(([label,score])=><div className="text-center" key={label}><p className="quiet-note">{label}</p><p className="mt-2 text-2xl font-semibold">{score}</p></div>)}</div><p className="quiet-note mt-4 text-center">Demo results · example concepts and scores</p><section className="mt-8"><h2 className="text-xl font-semibold">Remembered</h2><ConceptDots total={9} filled={8}/><div className="mt-4 flex flex-col gap-3">{concepts.slice(0,8).map((concept,i)=><motion.p key={concept} initial={{opacity:0,y:5}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{delay:i*.035}} className="flex items-center gap-3 text-sm"><Check size={16} className="shrink-0"/>{concept}</motion.p>)}</div></section><section className="account-card mt-7"><h2 className="flex items-center gap-2 text-lg font-semibold"><RotateCcw size={18}/>Needs another look</h2><p className="page-subtitle mt-3">The role of chlorophyll</p><p className="quiet-note mt-2">Chlorophyll is the green pigment that absorbs light energy. One small piece to come back to.</p></section><div className="mt-7 flex flex-col gap-3"><button className="primary-button w-full" disabled={saved} onClick={() => {setRecords(rows => [{id:crypto.randomUUID(),title:topic,score:89,concepts:8,date:'Just now'},...rows]);setSaved(true);}}>{saved ? <><Check size={18}/>Saved for this visit</> : <>Keep this practice session <ArrowRight size={18}/></>}</button><Link className="pill-button" href="/">Back to home</Link><p className="quiet-note text-center">Preview data resets when you refresh.</p></div></PageTransition>;
+}
