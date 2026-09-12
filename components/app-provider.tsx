@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode, type Dispatch, type SetStateAction } from 'react';
 import { MotionConfig } from 'motion/react';
 import { emptyStore, newSession, STORAGE_KEY, storeSchema, type Material, type Session, type Assessment, type LearningStore } from '@/lib/learning';
+import { loadCloudSessions, saveCloudSession } from '@/lib/cloud';
 
 type AppState = LearningStore & {
   ready: boolean; storageError: string; splashSeen: boolean; setSplashSeen: (value: boolean) => void;
@@ -30,6 +31,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); setStorageError(''); }
     catch { setStorageError('Browser storage is unavailable or full. Changes are only in memory. Export your data before leaving.'); }
   }, [store, ready, canSave]);
+  useEffect(() => {
+    if (!ready) return;
+    void loadCloudSessions().then(cloudRecords => {
+      if (!cloudRecords?.length) return;
+      setStore(current => {
+        const byId = new Map(current.records.map(record => [record.id, record]));
+        for (const record of cloudRecords) byId.set(record.id, record);
+        return { ...current, records: [...byId.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 100) };
+      });
+    });
+  }, [ready]);
+  useEffect(() => {
+    if (!ready || store.records.length === 0) return;
+    const latest = store.records[0];
+    void saveCloudSession(latest);
+  }, [ready, store.records]);
   const value: AppState = {
     ...store, ready, storageError, splashSeen, setSplashSeen,
     setNotes: notes => setStore(s => ({ ...s, notes })),
