@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode, type Dispatch, type SetStateAction } from 'react';
 import { MotionConfig } from 'motion/react';
 import { emptyStore, newSession, STORAGE_KEY, storeSchema, type Material, type Session, type Assessment, type LearningStore } from '@/lib/learning';
-import { loadCloudSessions, saveCloudSession } from '@/lib/cloud';
+import { getCloudUserId, loadCloudSessions, saveCloudSession } from '@/lib/cloud';
 
 type AppState = LearningStore & {
   ready: boolean; storageError: string; splashSeen: boolean; setSplashSeen: (value: boolean) => void;
@@ -42,11 +42,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
     });
   }, [ready]);
-  useEffect(() => {
-    if (!ready || store.records.length === 0) return;
-    const latest = store.records[0];
-    void saveCloudSession(latest);
-  }, [ready, store.records]);
   const value: AppState = {
     ...store, ready, storageError, splashSeen, setSplashSeen,
     setNotes: notes => setStore(s => ({ ...s, notes })),
@@ -59,6 +54,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     saveAssessment: (id, field, result) => setStore(s => {
       if (!s.current || s.current.id !== id) return s;
       const current = { ...s.current, [field]: result };
+      void saveCloudSession(current);
       return { ...s, current, records: current.teach && current.write ? [current, ...s.records.filter(r => r.id !== id)].slice(0, 100) : s.records };
     }),
     reset: () => { try { localStorage.removeItem(STORAGE_KEY); setStore(emptyStore()); setCanSave(true); setStorageError(''); } catch { setStorageError('Your browser blocked deletion. Clear site data in browser settings.'); } },
