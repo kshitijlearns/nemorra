@@ -10,7 +10,7 @@ const tableName = process.env.DYNAMODB_TABLE_NAME;
 const bucketName = process.env.S3_BUCKET_NAME;
 
 function configured() {
-  return Boolean(region && tableName && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY);
+  return Boolean(region && tableName && bucketName && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY);
 }
 
 let ddb: DynamoDBDocumentClient | null = null;
@@ -23,7 +23,7 @@ function getDdb() {
 }
 
 function getS3() {
-  if (!configured() || !bucketName) return null;
+  if (!configured()) return null;
   if (!s3) s3 = new S3Client({ region });
   return s3;
 }
@@ -81,7 +81,7 @@ export async function deleteSession(userId: string, sessionId: string, sourceFil
 export async function createUploadPost(userId: string, fileName: string, contentType: string, size: number) {
   const client = getS3();
   if (!client || !bucketName) return null;
-  if (size > 50 * 1024 * 1024) throw new Error('Files must be 50 MB or smaller.');
+  if (!Number.isFinite(size) || size < 1 || size > 50 * 1024 * 1024) throw new Error('Files must be between 1 byte and 50 MB.');
   const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '-').slice(-120);
   const key = `users/${userId}/uploads/${crypto.randomUUID()}-${safeName}`;
   const post = await createPresignedPost(client, {
