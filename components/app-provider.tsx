@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode, type Dispatch, type SetStateAction } from 'react';
 import { MotionConfig } from 'motion/react';
 import { emptyStore, newSession, STORAGE_KEY, storeSchema, type Material, type Session, type Assessment, type LearningStore } from '@/lib/learning';
-import { getCloudUserId, loadCloudSessions, saveCloudSession } from '@/lib/cloud';
+import { deleteCloudSession, loadCloudSessions, saveCloudSession } from '@/lib/cloud';
 
 type AppState = LearningStore & {
   ready: boolean; storageError: string; splashSeen: boolean; setSplashSeen: (value: boolean) => void;
@@ -15,12 +15,14 @@ type AppState = LearningStore & {
   reset: () => void; exportData: () => void;
 };
 const Context = createContext<AppState | null>(null);
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [store, setStore] = useState<LearningStore>(emptyStore);
   const [ready, setReady] = useState(false);
   const [storageError, setStorageError] = useState('');
   const [canSave, setCanSave] = useState(true);
   const [splashSeen, setSplashSeen] = useState(false);
+
   useEffect(() => {
     try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) setStore(storeSchema.parse(JSON.parse(raw))); }
     catch { setCanSave(false); setStorageError('Saved data could not be loaded. It has not been overwritten. Export it or reset local data in Your corner.'); }
@@ -42,20 +44,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
     });
   }, [ready]);
+
   const value: AppState = {
     ...store, ready, storageError, splashSeen, setSplashSeen,
     setNotes: notes => setStore(s => ({ ...s, notes })),
     setCalm: calm => setStore(s => ({ ...s, calm })),
     setProfile: next => setStore(s => ({ ...s, profile: typeof next === 'function' ? next(s.profile) : next })),
-    setRecords: next => setStore(s => { const records = typeof next === 'function' ? next(s.records) : next; const removed = s.current && s.records.some(r => r.id === s.current?.id) && !records.some(r => r.id === s.current?.id); return { ...s, records, current: removed ? null : s.current }; }),
+    setRecords: next => setStore(s => {
+      const records = typeof next === 'function' ? next(s.records) : next;
+      const removed = s.records.filter(record => !records.some(nextRecord => nextRecord.id === record.id));
+      for (const record of removed) void deleteCloudSession(record.id);
+      const currentRemoved = s.current && s.records.some(record => record.id === s.current?.id) && !records.some(record => record.id === s.current?.id);
+      return { ...s, records, current: currentRemoved ? null : s.current };
+    }),
     startSession: material => setStore(s => ({ ...s, current: newSession(material), notes: '' })),
     openSession: current => setStore(s => ({ ...s, current })),
     updateDraft: (field, text) => setStore(s => ({ ...s, current: s.current ? { ...s.current, [field]: text } : null })),
     saveAssessment: (id, field, result) => setStore(s => {
       if (!s.current || s.current.id !== id) return s;
       const current = { ...s.current, [field]: result };
-      void saveCloudSession(current);
-      return { ...s, current, records: current.teach && current.write ? [current, ...s.records.filter(r => r.id !== id)].slice(0, 100) : s.records };
+      if (current.teach && current.write) void saveCloudSession(current);
+      return { ...s, current, records: current.teach && current.write ? [current, ...s.records.filter(record => record.id !== id)].slice(0, 100) : s.records };
     }),
     reset: () => { try { localStorage.removeItem(STORAGE_KEY); setStore(emptyStore()); setCanSave(true); setStorageError(''); } catch { setStorageError('Your browser blocked deletion. Clear site data in browser settings.'); } },
     exportData: () => {
