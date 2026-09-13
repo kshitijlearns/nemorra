@@ -21,12 +21,25 @@ export async function saveCloudSession(session: unknown) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: getCloudUserId(), session }),
     });
-    return response.ok;
+    const data = await response.json().catch(() => ({}));
+    return response.ok && data.saved === true;
   } catch {
     return false;
   }
 }
-
+export async function deleteCloudSession(sessionId: string) {
+  try {
+    const response = await fetch('/api/sessions', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: getCloudUserId(), sessionId }),
+    });
+    const data = await response.json().catch(() => ({}));
+    return response.ok && data.deleted === true;
+  } catch {
+    return false;
+  }
+}
 export async function loadCloudSessions() {
   try {
     const response = await fetch(`/api/sessions?userId=${encodeURIComponent(getCloudUserId())}`, { cache: 'no-store' });
