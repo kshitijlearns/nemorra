@@ -6,10 +6,10 @@ import { sessionSchema } from '@/lib/learning';
 const userIdSchema = z.string().min(1).max(200).regex(/^[a-zA-Z0-9_-]+$/);
 const sessionIdSchema = z.string().uuid();
 function isSameOrigin(request: Request) {
-  const origin = request.headers.get('origin');
-  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host');
-  if (!origin || !host || request.headers.get('sec-fetch-site') === 'cross-site') return false;
-  try { return new URL(origin).host === host; } catch { return false; }
+  // Vercel rewrites Host/X-Forwarded-Host for aliases and previews, so comparing
+  // them with Origin rejects legitimate in-app requests. Cross-site browser posts
+  // are still refused; JSON requests also require a CORS preflight we do not allow.
+  return request.headers.get('sec-fetch-site') !== 'cross-site';
 }
 function noStore(body: unknown, status = 200) {
   return NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
