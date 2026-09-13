@@ -8,22 +8,28 @@ import type { Session } from '@/lib/learning';
 const region = process.env.AWS_REGION;
 const tableName = process.env.DYNAMODB_TABLE_NAME;
 const bucketName = process.env.S3_BUCKET_NAME;
+const maxUploadBytes = 15 * 1024 * 1024;
 
-function configured() {
-  return Boolean(region && tableName && bucketName && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY);
+function hasAwsCredentials() {
+  return Boolean(region && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY);
+}
+function dynamoConfigured() {
+  return Boolean(hasAwsCredentials() && tableName);
+}
+function s3Configured() {
+  return Boolean(hasAwsCredentials() && bucketName);
 }
 
 let ddb: DynamoDBDocumentClient | null = null;
 let s3: S3Client | null = null;
 
 function getDdb() {
-  if (!configured()) return null;
+  if (!dynamoConfigured() || !region) return null;
   if (!ddb) ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region }), { marshallOptions: { removeUndefinedValues: true } });
   return ddb;
 }
-
 function getS3() {
-  if (!configured()) return null;
+  if (!s3Configured() || !region) return null;
   if (!s3) s3 = new S3Client({ region });
   return s3;
 }
@@ -65,31 +71,35 @@ export async function listSessions(userId: string) {
     TableName: tableName,
     KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
     ExpressionAttributeValues: { ':pk': `USER#${userId}`, ':sk': 'SESSION#' },
-    ScanIndexForward: false,
     Limit: 100,
   }));
-  return (result.Items ?? []).map(item => item.session as Session).filter(Boolean);
+  return (result.Items ?? [])
+    .map(item => item.session as Session)
+    .filter(Boolean)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export async function deleteSession(userId: string, sessionId: string, sourceFileKey?: string) {
   const client = getDdb();
   if (client && tableName) await client.send(new DeleteCommand({ TableName: tableName, Key: { PK: `USER#${userId}`, SK: `SESSION#${sessionId}` } }));
   const clientS3 = getS3();
-  if (clientS3 && bucketName && sourceFileKey) await clientS3.send(new DeleteObjectCommand({ Bucket: bucketName, Key: sourceFileKey }));
+  if (clientS3 && bucketName && sourceFileKey && sourceFileKey.startsWith(`users/${userId}/uploads/`)) {
+    await clientS3.send(new DeleteObjectCommand({ Bucket: bucketName, Key: sourceFileKey }));
+  }
 }
 
 export async function createUploadPost(userId: string, fileName: string, contentType: string, size: number) {
   const client = getS3();
   if (!client || !bucketName) return null;
-  if (!Number.isFinite(size) || size < 1 || size > 50 * 1024 * 1024) throw new Error('Files must be between 1 byte and 50 MB.');
-  const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '-').slice(-120);
+  if (!Number.isFinite(size) || size < 1 || size > maxUploadBytes) throw new Error('Files must be between 1 byte and 15 MB.');
+  const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '-').replace(/^-+|-+$/g, '').slice(-120) || 'upload';
   const key = `users/${userId}/uploads/${crypto.randomUUID()}-${safeName}`;
   const post = await createPresignedPost(client, {
     Bucket: bucketName,
     Key: key,
     Fields: { 'Content-Type': contentType },
     Conditions: [
-      ['content-length-range', 1, 50 * 1024 * 1024],
+      ['content-length-range', 1, maxUploadBytes],
       ['eq', '$Content-Type', contentType],
     ],
     Expires: 600,
