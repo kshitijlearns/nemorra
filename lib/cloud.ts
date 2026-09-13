@@ -1,6 +1,7 @@
 'use client';
 
 const USER_KEY = 'nemorra.cloud.user.v1';
+let fallbackUserId: string | null = null;
 
 export function getCloudUserId() {
   try {
@@ -10,7 +11,8 @@ export function getCloudUserId() {
     localStorage.setItem(USER_KEY, id);
     return id;
   } catch {
-    return 'anonymous';
+    fallbackUserId ??= crypto.randomUUID();
+    return fallbackUserId;
   }
 }
 
