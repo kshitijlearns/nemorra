@@ -27,10 +27,10 @@ function storageClient() {
   return { client: new S3Client({ region }), bucket: process.env.S3_BUCKET_NAME };
 }
 function isSameOrigin(request: Request) {
-  const origin = request.headers.get('origin');
-  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host');
-  if (!origin || !host || request.headers.get('sec-fetch-site') === 'cross-site') return false;
-  try { return new URL(origin).host === host; } catch { return false; }
+  // Vercel rewrites Host/X-Forwarded-Host for aliases and previews, so comparing
+  // them with Origin rejects legitimate in-app requests. Cross-site browser posts
+  // are still refused; JSON requests also require a CORS preflight we do not allow.
+  return request.headers.get('sec-fetch-site') !== 'cross-site';
 }
 
 export async function POST(request: Request) {
