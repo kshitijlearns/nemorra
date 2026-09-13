@@ -25,6 +25,8 @@ export async function POST(request: Request) {
     const input = parsed.data;
     const abortSignal = AbortSignal.any([request.signal, AbortSignal.timeout(55000)]);
 
+    if (!process.env.GEMINI_API_KEY) return json({ error: 'Gemini is not configured on this deployment.' }, 503);
+
     if (input.action === 'evaluate') {
       const { output } = await generateText({ ...options, abortSignal, system, output: Output.object({ schema: assessmentSchema }), prompt: `Evaluate the learner answer against EVERY concept in the exact supplied order. Return exactly ${input.material.concepts.length} items. remembered = accurate explanation, partial = incomplete or mixed accuracy, missing = absent or incorrect. Feedback must explain what was correct or how to improve. Do not penalize grammar. Data: ${JSON.stringify(input)}` });
       if (output.items.length !== input.material.concepts.length) return json({ error: 'Feedback was incomplete. Please retry.' }, 502);
