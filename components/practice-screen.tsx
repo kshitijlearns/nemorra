@@ -1,19 +1,22 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen } from 'lucide-react';
 import { PageTransition } from '@/components/page-transition';
 import { Mascot } from '@/components/mascot/mascot';
+import { Modal } from '@/components/modals/modal';
+import { useNemorra } from '@/components/app-provider';
 import { SpeechInput } from '@/components/teach/speech-input';
 import { assessmentSchema, learningRequest, score } from '@/lib/learning';
 
 export function PracticeScreen() {
-  const { current, saveAssessment } = useNemorra();
+  const { current, updateDraft, saveAssessment } = useNemorra();
+  const [review, setReview] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [locked, setLocked] = useState(false);
 
-  if (!current) return <PageTransition><div className="teach-empty"><h1 className="page-title">Start with a little learning.</h1><p className="page-subtitle mt-5">Add some notes or try the sample first. Your practice will follow that material.</p><Link className="primary-button mt-7" href="/">Choose material <ArrowRight size={18}/></Link></div></PageTransition>;
+  if (!current) return <PageTransition><h1 className="page-title">Start with a little learning.</h1><p className="page-subtitle mt-5">Add some notes or try the sample first. Your practice will follow that material.</p><Link className="primary-button mt-7" href="/">Choose material <ArrowRight size={18}/></Link></PageTransition>;
 
   const session = current;
   const assessment = session.teach;
@@ -37,24 +40,8 @@ export function PracticeScreen() {
     }
   }
 
-  return <PageTransition><main className="teach-page-redesign" aria-label="Teach">
-    <section className="teach-copy">
-      <h1>Teach</h1>
-      <p>I’m listening. Teach me what you just learned.</p>
-    </section>
-    {assessment ? <section className="feedback-panel">
-      <Mascot state="happy" className="feedback-mascot"/>
-      <h2 className="text-2xl font-semibold">{score(assessment)}% concept recall</h2>
-      <p className="page-subtitle">{assessment.summary}</p>
-      <p className="quiet-note">AI practice estimate, not a grade.</p>
-      <Link href="/results" className="primary-button w-full">See what stuck <ArrowRight size={19}/></Link>
-    </section> : <section className="teach-redesign-stage">
-      <Mascot state="listening" priority className="teach-redesign-mascot"/>
-      <div className="teach-redesign-action">
-        <SpeechInput value={session.explanation} onChange={() => undefined} onSubmit={evaluate} disabled={busy}/>
-        {busy && <p role="status" className="quiet-note">Listening to your explanation…</p>}
-        {error && <p role="alert" className="text-destructive">{error}</p>}
-      </div>
-    </section>}
-  </main></PageTransition>;
+  return <PageTransition><div className="flow-top"><Link href="/" className="icon-button outlined" aria-label="Back home"><ArrowLeft size={19}/></Link><div className="flow-steps"><span className="current">Teach</span></div><button className="icon-button" aria-label="Review learning material" onClick={() => setReview(true)}><BookOpen size={22}/></button></div><h1 className="page-title">Teach</h1><p className="page-subtitle mt-3">Explain it in your own words. I’m listening.</p><p className="quiet-note mt-3">{session.material.title}</p>
+    {assessment ? <section className="feedback-panel"><Mascot state="happy" className="feedback-mascot"/><h2 className="text-2xl font-semibold">{score(assessment)}% concept recall</h2><p className="page-subtitle">{assessment.summary}</p><p className="quiet-note">AI practice estimate, not a grade.</p><Link href="/results" className="primary-button w-full">See what stuck <ArrowRight size={19}/></Link></section> : <><details className="account-card mt-6" open><summary className="cursor-pointer font-semibold">Read your learning material</summary><p className="page-subtitle mt-3 whitespace-pre-wrap">{session.material.text}</p><p className="quiet-note mt-3">Read, then close this section and explain what you remember.</p></details><div className="mt-10 flex justify-center"><Mascot state="listening" className="feedback-mascot"/></div><div className="mt-8"><SpeechInput value={session.explanation} onChange={value => updateDraft('explanation', value)} onSubmit={evaluate} disabled={busy}/></div>{busy && <p role="status" className="quiet-note mt-3">Listening to your explanation…</p>}{error && <p role="alert" className="text-destructive mt-4 text-sm">{error}</p>}</>}
+    <Modal open={review} onClose={() => setReview(false)} title={session.material.title}><p className="sample-passage whitespace-pre-wrap">{session.material.text}</p></Modal>
+  </PageTransition>;
 }
