@@ -143,3 +143,9 @@
 @media(max-width:380px) { .page-container { padding-inline:19px; } .page-title { font-size:45px; } .pill-button { padding-inline:12px; } .recording-main { gap:10px; padding-left:10px; } .recording-title { font-size:15px; } .recording-meta { font-size:14px; } .concept-dots { gap:4px; } .recording-main .score-ring { width:54px!important; height:54px!important; } .upload-controls .flex { gap:3px; } }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
 [data-calm] *,[data-calm] *::before,[data-calm] *::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; }
+
+.teach-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; }
+.teach-top-left { display:flex; align-items:center; gap:8px; }
+.teach-write-button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:34px; padding:7px 11px; border:1px solid var(--border); border-radius:999px; background:transparent; color:var(--foreground); font-size:13px; line-height:1; }
+.teach-write-button:hover { background:color-mix(in srgb,var(--border) 35%,transparent); }
+.teach-write-button:active { transform:scale(.97); }
