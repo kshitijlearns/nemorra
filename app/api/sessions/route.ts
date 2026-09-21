@@ -5,8 +5,10 @@ import { sessionSchema } from '@/lib/learning';
 
 const userIdSchema = z.string().min(1).max(200).regex(/^[a-zA-Z0-9_-]+$/);
 const sessionIdSchema = z.string().uuid();
-
 function isSameOrigin(request: Request) {
+  // Vercel rewrites Host/X-Forwarded-Host for aliases and previews, so comparing
+  // them with Origin rejects legitimate in-app requests. Cross-site browser posts
+  // are still refused; JSON requests also require a CORS preflight we do not allow.
   return request.headers.get('sec-fetch-site') !== 'cross-site';
 }
 function noStore(body: unknown, status = 200) {
@@ -14,16 +16,15 @@ function noStore(body: unknown, status = 200) {
 }
 
 export async function GET(request: Request) {
-  const userId = userIdSchema.safeParse(new URL(request.url).searchParams.get('userId'));
-  if (!userId.success) return noStore({ error: 'Invalid userId.' }, 400);
+  const userIdResult = userIdSchema.safeParse(new URL(request.url).searchParams.get('userId'));
+  if (!userIdResult.success) return noStore({ error: 'Invalid userId.' }, 400);
   if (!storageStatus().dynamo) return noStore({ configured: false, sessions: [] });
   try {
-    return noStore({ configured: true, sessions: await listSessions(userId.data) });
+    return noStore({ configured: true, sessions: await listSessions(userIdResult.data) });
   } catch {
     return noStore({ error: 'Could not load cloud sessions.' }, 502);
   }
 }
-
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) return noStore({ error: 'Please submit from the Nemorra app.' }, 403);
   if (!request.headers.get('content-type')?.startsWith('application/json')) return noStore({ error: 'Expected JSON.' }, 415);
@@ -39,7 +40,6 @@ export async function POST(request: Request) {
     return noStore({ error: 'Could not save session.' }, 502);
   }
 }
-
 export async function PATCH(request: Request) {
   if (!isSameOrigin(request)) return noStore({ error: 'Please submit from the Nemorra app.' }, 403);
   try {
@@ -54,7 +54,6 @@ export async function PATCH(request: Request) {
     return noStore({ error: 'Could not load session.' }, 502);
   }
 }
-
 export async function DELETE(request: Request) {
   if (!isSameOrigin(request)) return noStore({ error: 'Please submit from the Nemorra app.' }, 403);
   try {
