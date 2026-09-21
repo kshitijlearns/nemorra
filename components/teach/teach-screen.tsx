@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
 import Link from "next/link";
+import { useState } from "react";
 import { ArrowLeft, ArrowRight, BookOpen, Pencil } from "lucide-react";
 import { PageTransition } from "@/components/page-transition";
 import { Mascot } from "@/components/mascot/mascot";
@@ -26,18 +26,13 @@ export function TeachScreen() {
       if (answer.trim().length < 20) setError("Speak a little more, then finish your explanation.");
       return;
     }
-    setLocked(true);
-    setBusy(true);
-    setError("");
+    setLocked(true); setBusy(true); setError("");
     try {
       const result = assessmentSchema.parse(await learningRequest({ action: "evaluate", material: session.material, answer }));
       saveAssessment(session.id, "teach", result);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not evaluate your explanation.");
-    } finally {
-      setLocked(false);
-      setBusy(false);
-    }
+    } finally { setLocked(false); setBusy(false); }
   }
 
   return <PageTransition>
@@ -45,7 +40,7 @@ export function TeachScreen() {
       <div className="teach-topbar">
         <Link href="/" className="icon-button outlined" aria-label="Back home"><ArrowLeft size={19}/></Link>
         <div className="teach-top-actions">
-          <button type="button" className="teach-write-button" onClick={() => setReview(true)} aria-label="Open write option"><Pencil size={14}/><span>Write</span></button>
+          <Link href="/write" className="teach-write-button" aria-label="Write a response"><Pencil size={14}/><span>Write</span></Link>
           <button type="button" className="icon-button" aria-label="Review learning material" onClick={() => setReview(true)}><BookOpen size={22}/></button>
         </div>
       </div>
