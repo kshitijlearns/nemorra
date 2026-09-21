@@ -150,3 +150,10 @@
 .teach-redesign-action .primary-button { width:100%; min-height:54px; border-radius:18px; font-size:16px; }
 .teach-redesign-action .quiet-note,.teach-redesign-action [role='alert'] { margin-top:10px; text-align:center; }
 .teach-empty { padding-top:30px; }
+
+.teach-topbar { display:flex; align-items:center; justify-content:space-between; padding:0 24px; margin-bottom:22px; }
+.teach-top-actions { display:flex; align-items:center; gap:8px; }
+.teach-write-button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:34px; padding:7px 11px; border:1px solid var(--border); border-radius:999px; background:transparent; color:var(--foreground); font-size:13px; line-height:1; transition:background .2s,transform .2s; }
+.teach-write-button:hover { background:color-mix(in srgb,var(--border) 35%,transparent); }
+.teach-write-button:active { transform:scale(.97); }
+.teach-write-button svg { stroke-width:1.8; }
