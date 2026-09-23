@@ -105,10 +105,16 @@ export async function POST(request: Request) {
     if (!material.success) return json({ error: 'Could not extract enough learning material. Try clearer text or a shorter document.' }, 422);
     return json(material.data satisfies Material);
   } catch (error) {
-    console.error('[nemorra] Gemini request failed', error instanceof Error ? error.name : 'unknown');
+    console.error('[nemorra] Gemini request failed', error);
     const status = upstreamStatus(error);
-    if (status === 429 || status === 402) return json({ error: 'Gemini quota or budget reached. Please try later.' }, 429);
-    if (status === 408 || status === 504) return json({ error: 'Processing timed out. Try a shorter passage.' }, 504);
-    return json({ error: 'Gemini could not finish this request. Your work is still here; please retry.' }, 502);
+    if (status === 401) return json({ error: 'Gemini rejected the API key. Check that GEMINI_API_KEY is valid and belongs to the correct Google AI project.' }, 502);
+    if (status === 403) return json({ error: 'Gemini denied this request. Check the API key permissions and Google AI project access.' }, 502);
+    if (status === 404) return json({ error: 'Gemini could not find the requested model or resource. Check GEMINI_MODEL.' }, 502);
+    if (status === 400) return json({ error: 'Gemini rejected the request format. We need to adjust the API request.' }, 502);
+    if (status === 402) return json({ error: 'Gemini billing or prepaid credits are unavailable for this API project.' }, 502);
+    if (status === 429) return json({ error: 'Gemini quota or rate limit was reached. Please wait and retry.' }, 429);
+    if (status === 408 || status === 504) return json({ error: 'Gemini timed out while processing this request. Try a shorter passage.' }, 504);
+    if (status === 503) return json({ error: 'Gemini is temporarily unavailable. Please retry in a moment.' }, 503);
+    return json({ error: 'Gemini returned an unexpected error. Please retry.' }, 502);
   }
 }
