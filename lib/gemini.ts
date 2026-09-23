@@ -56,11 +56,17 @@ export async function generateGeminiStructuredFromBytes<T>(args: {
     file: new Blob([Buffer.from(args.data)], { type: args.mimeType }),
     config: { mimeType: args.mimeType, displayName: args.displayName ?? 'nemorra-upload' },
   });
+
+  const fileUri = uploaded.uri;
+  if (!fileUri) throw new Error('Gemini uploaded the file but returned no file URI.');
+
+  const fileMimeType = uploaded.mimeType || args.mimeType;
+
   try {
     const response = await ai.models.generateContent({
       model: MODEL,
       contents: createUserContent([
-        createPartFromUri(uploaded.uri, uploaded.mimeType),
+        createPartFromUri(fileUri, fileMimeType),
         args.prompt,
       ]),
       config: {
@@ -73,6 +79,10 @@ export async function generateGeminiStructuredFromBytes<T>(args: {
     if (!text) throw new Error('Gemini returned an empty response.');
     return JSON.parse(text) as T;
   } finally {
-    try { if (uploaded.name) await ai.files.delete({ name: uploaded.name }); } catch { /* temporary file cleanup is best effort */ }
+    try {
+      if (uploaded.name) await ai.files.delete({ name: uploaded.name });
+    } catch {
+      // Temporary file cleanup is best effort.
+    }
   }
 }
