@@ -2,7 +2,7 @@ import 'server-only';
 
 import { GoogleGenAI, createPartFromUri, createUserContent } from '@google/genai';
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 
 function getClient() {
   const apiKey = process.env.GEMINI_API_KEY;
