@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { GetObjectCommand, HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { z } from 'zod';
 import { materialSchema } from '@/lib/learning';
-import { generateGeminiStructured } from '@/lib/gemini';
+import { generateGeminiStructuredFromBytes } from '@/lib/gemini';
 
 export const maxDuration = 60;
 const maxFileBytes = 15 * 1024 * 1024;
@@ -58,11 +58,13 @@ export async function POST(request: Request) {
     const bytes = Buffer.from(await object.Body.transformToByteArray());
     if (bytes.length !== contentLength) return NextResponse.json({ error: 'Uploaded file could not be read safely. Please upload it again.' }, { status: 422 });
 
-    const output = await generateGeminiStructured<unknown>({
+    const output = await generateGeminiStructuredFromBytes<unknown>({
       systemInstruction: system,
       prompt: `Extract the learning material, keep essential details within 20,000 characters, and identify 1–12 meaningful key concepts. Notes: ${parsed.data.notes}`,
       schema: outputSchema,
-      files: [{ data: bytes, mimeType: mediaType }],
+      data: bytes,
+      mimeType: mediaType,
+      displayName: parsed.data.key.split('/').pop() || 'nemorra-upload',
     });
     const material = materialSchema.safeParse(output);
     if (!material.success || material.data.concepts.length < 1) return NextResponse.json({ error: 'Could not extract enough learning material. Try a clearer or shorter document.' }, { status: 422 });
